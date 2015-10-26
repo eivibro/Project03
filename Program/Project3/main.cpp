@@ -1,7 +1,6 @@
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
-#include "functions.h"
 #include "lib.h"
 #include <cmath>
 #include <omp.h>
