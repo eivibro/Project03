@@ -7,15 +7,17 @@
 #include <QElapsedTimer>
 using namespace std;
 
-double int_function_spherical(double theta1, double theta2, double phi1, double phi2, double rho1, double rho2);
-double int_function_cartesian(double x1, double y1, double z1, double x2, double y2, double z2);
+double int_function_spherical(double theta1,
+          double theta2, double phi1, double phi2, double rho1, double rho2);
+double int_function_cartesian(double x1, double y1,
+                              double z1, double x2, double y2, double z2);
 void gauss_laguerre(double *x, double *w, int n, double alf);
 int main()
 {
     double const pi = 3.14159265359;
     double const exact = 5*pi*pi/(16*16);
     //Task a)
-    int n = 20;
+    int n = 10;
     double a,b;
     a = -2;
     b = 2;
@@ -36,9 +38,9 @@ int main()
                 for (i2 = 0; i2 < n; i2++){
                     for (j2 = 0; j2 < n; j2++){
                         for (k2 = 0; k2 < n; k2++){
-                            //cout << int_function_cartesian(x[i1], x[j1], x[k1], x[i2], x[j2], x[k2]) << endl;
                             int_gauss += w[i1]*w[j1]*w[k1]*w[i2]*w[j2]*w[k2]
-                                    *int_function_cartesian(x[i1], x[j1], x[k1], x[i2], x[j2], x[k2]);
+                                    *int_function_cartesian(x[i1], x[j1],
+                                                   x[k1], x[i2], x[j2], x[k2]);
                         }
                     }
                 }
@@ -49,7 +51,7 @@ int main()
     //cout << "Time: " << elapsedTimer.elapsed()/1000. << "s" << endl;
     cout << "Exact integral: " << exact << endl;
     cout << "Integral Gauss-Legendre: " << int_gauss << endl;
-    cout << "Relative error Gauss-Legendre: " << (exact-int_gauss)/exact << endl;
+    cout << "Relative error Gauss-Legendre: " << abs(exact-int_gauss)/exact << endl;
     delete [] w;
     //Task b)
     double *rho = new double[n+1];
@@ -69,7 +71,8 @@ int main()
                         for (j2 = 0; j2 < n; j2++){
                             for (k2 = 0; k2 < n; k2++){
                                 int_gauss += wt[i1]*wt[j1]*wp[k1]*wp[i2]*wr[j2+1]*wr[k2+1]*
-                                        int_function_spherical(theta[i1],theta[j1],phi[k1],phi[i2],rho[j2+1],rho[k2+1]);
+                                        int_function_spherical(theta[i1],theta[j1],phi[k1],
+                                                               phi[i2],rho[j2+1],rho[k2+1]);
                             }
                         }
                     }
@@ -77,16 +80,16 @@ int main()
             }
             //cout << i1 << endl;
         }
-    cout << "Integral Gauss-Leguerre: " << int_gauss/1024. << endl;
-    cout << "Relative error Gauss-Leguerre: " << (exact-int_gauss/1024.)/exact << endl;
+    cout << "Integral Gauss-Laguerre: " << int_gauss/1024. << endl;
+    cout << "Relative error Gauss-Laguerre: " << abs(exact-int_gauss/1024.)/exact << endl;
     delete []rho;
     delete []wr;
     delete []theta;
     delete []wt;
     delete []phi;
     delete []wp;
-//    //Task c)
-    int N = 1e6;
+    //Task c)
+    int N = 1e5;
     long idum;
     double jacobiDeterminant = pow(4,6);
     idum = -1;
@@ -130,10 +133,17 @@ int main()
 
     var_brute = (sigma_sum-brute_integral*brute_integral)/N;
     var_importance = (sigma_sum_importance-importance_integral*importance_integral)/N;
-    cout << "Brute force MC: " << brute_integral*jacobiDeterminant << endl;
-    cout << "Standard deviation brute force MC: " << jacobiDeterminant*sqrt(var_brute) << endl;
+    cout << "Brute force MC: " <<
+            brute_integral*jacobiDeterminant << endl;
+    cout << "Standard deviation brute force MC: " <<
+            jacobiDeterminant*sqrt(var_brute) << endl;
+    cout << "Error brute force: " <<
+            abs(exact - brute_integral*jacobiDeterminant)/exact << endl;
     cout << "Importance sampling MC: " << importance_integral*JacobiDeterminantSpherical << endl;
-    cout << "Standard deviation importance MC: " << JacobiDeterminantSpherical*sqrt(var_importance) << endl;
+    cout << "Standard deviation importance MC: " <<
+            JacobiDeterminantSpherical*sqrt(var_importance) << endl;
+    cout << "Error importance MC: " <<
+            abs(exact - importance_integral*JacobiDeterminantSpherical)/exact << endl;
     delete [] x;
     return 0;
 }
@@ -150,7 +160,8 @@ double int_function_cartesian(double x1, double y1, double z1, double x2, double
     }else{return 0;}
 }
 
-double int_function_spherical(double theta1, double theta2, double phi1, double phi2, double rho1, double rho2){
+double int_function_spherical(double theta1, double theta2, double phi1,
+                              double phi2, double rho1, double rho2){
     double epsilon = 1e-12;
 
     double cosB = (cos(theta1)*cos(theta2)+sin(theta1)*sin(theta2)*cos(phi1-phi2));
@@ -160,4 +171,17 @@ double int_function_spherical(double theta1, double theta2, double phi1, double 
         return sin(theta1)*sin(theta2)/sqrt(distance2);
     }else{return 0;}
 }
+
+//Benchmark calculation for a = -2, b = 2, n = 10 and N = 1e5
+//Exact integral: 0.192766
+//Integral Gauss-Legendre: 0.129834
+//Relative error Gauss-Legendre: 0.326466
+//Integral Gauss-Laguerre: 0.186584
+//Relative error Gauss-Laguerre: 0.0320678
+//Brute force MC: 0.210666
+//Standard deviation brute force MC: 0.0346461
+//Error brute force: 0.0928624
+//Importance sampling MC: 0.192067
+//Standard deviation importance MC: 0.00303462
+//Error importance MC: 0.00362408
 

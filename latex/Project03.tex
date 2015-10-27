@@ -1,0 +1,292 @@
+\documentclass[11pt, a4paper]{article}
+%\documentclass[11pt, a4paper,twocolumn]{report}
+%Det finnes flere dokumentklasser. For tekster som ikke er alt
+%for lange fungerer article fint.
+%Skal du bruke report så å alle \section{} byttes til \chapter{}
+
+\usepackage[T1]{fontenc}	%Husker egentlig ikke hva denne gjør
+\usepackage[utf8]{inputenc} %Vanlig tegnsetting
+\usepackage[norsk]{babel}	%For norsk
+\usepackage{graphicx}		%For å inkludere bilder og figurer
+\usepackage{enumerate}		%For å lage underpunkter
+\usepackage{mathtools}		%Min favoritt for matte
+\usepackage{listings}		%Inkludering av kildekode
+\usepackage{pdfpages}		%Inkludering av pdf-sider. Kjekt 								%oppgaveteksten 
+%\usepackage{tikz}			%For å lage figurer(Litt avansert)
+\usepackage{multirow}		%For litt mer avanserte tabeller
+\usepackage{cite}			%For å bruke referanser
+%\usepackage{algorithm}		%For å lage systematiske algoritmer
+%\usepackage{hyperref}
+\usepackage{url}			%For å lage nettadresser
+\usepackage{braket}
+
+\setcounter{tocdepth}{3} 	%Setter hvor dypt 												%innholdfortegnelsen skal gå
+							%(hvor mange underseksjoner i 
+							%kapittelet du skal ha med)
+
+%Eksempel på enkel kommando du kan definere for å slippe å 
+%skrive \text{dB} i ligningsmiljøer for at det skal bli fint.
+%Kan dermed skrive \db
+\newcommand{\db}{\text{dB}}
+
+%Instillinger for listing av kildekode
+\lstset{language = Matlab, commentstyle=\textcolor[rgb]{0.00,0.50,0.00}, keepspaces=true, columns=flexible, basicstyle=\footnotesize, keywordstyle=\color{blue}, showstringspaces=false, inputencoding=ansinew}
+
+%For å nummerere bare ligninger det refereres til
+\mathtoolsset{showonlyrefs}
+
+
+\author{Eivind Brox}
+
+\title{Prosjekttittel}
+\pagenumbering{roman}		%Romertall for sidetall i starten
+\setcounter{page}{0}		%setter tellinga til null på
+							%sidetall
+\date{\today}				%Hvis du vil ha med datoen
+\begin{document}
+\maketitle
+\thispagestyle{empty}		%Stilen på den gitte siden
+\clearpage					%Fortsett på neste side
+
+\section{Abstract}
+The task of this project is to integrate first in a brute force manner a six-dimensional integral which is used to determine the ground state correlation energy between two electrons 
+in a helium atom.  The integral appears in many quantum mechanical applications.
+
+Both Gauss-Legendre and Gauss-Laguerre quadrature and Monte-Carlo integration have been used. 
+
+The main conclusion is that for integral methods it pays off to examine the problem thoroughly, as well as to choose Monte Carlo methods for integrals of several dimensions. 
+
+
+\clearpage
+\pagestyle{headings}		%Stilen på resten av dokumentet
+\tableofcontents			%Generer innholdsfortegnelse
+\clearpage
+\pagenumbering{arabic}		%Vanlig numerering
+
+\clearpage
+
+\section{The Physical Problem}
+We assume that the wave function of each electron can be modeled like the single-particle
+wave function of an electron in the hydrogen atom. The single-particle wave function  for an electron $i$ in the 
+$1s$ state 
+is given in terms of a dimensionless variable    (the wave function is not properly normalized)
+\[
+   {\bf r}_i =  x_i {\bf e}_x + y_i {\bf e}_y +z_i {\bf e}_z ,
+\]
+as
+\[
+   \psi_{1s}({\bf r}_i)  =   e^{-\alpha r_i},
+\]
+where $\alpha$ is a parameter and 
+\[
+r_i = \sqrt{x_i^2+y_i^2+z_i^2}.
+\]
+We will fix $\alpha=2$, which should correspond to the charge of the helium atom $Z=2$. 
+
+The ansatz for the wave function for two electrons is then given by the product of two 
+so-called 
+$1s$ wave functions as 
+\[
+   \Psi({\bf r}_1,{\bf r}_2)  =   e^{-\alpha (r_1+r_2)}.
+\]
+Note that it is not possible to find a closed-form or analytical  solution to Schr\"odinger's equation for 
+two interacting electrons in the helium atom. 
+
+The integral we need to solve is the quantum mechanical expectation value of the correlation
+energy between two electrons which repel each other via the classical Coulomb interaction, namely
+\begin{equation}\label{eq:correlationenergy}
+   \langle \frac{1}{|{\bf r}_1-{\bf r}_2|} \rangle =
+   \int_{-\infty}^{\infty} d{\bf r}_1d{\bf r}_2  e^{-2\alpha (r_1+r_2)}\frac{1}{|{\bf r}_1-{\bf r}_2|}.
+\end{equation}
+Note that our wave function is not normalized. There is a normalization factor missing, but for this project
+we don't need to worry about that.
+
+This integral can be solved in closed form and the answer is $5\pi^2/16^2$.
+There are no number capable of representing infinity on the computer. Thus we are forced to choose a value that gives us a good enough estimate of what we are after. In this case we can choose infinity to be where the single particle wave function is more or less zero, since integrating past this point will add very little to our total.
+
+Considering figure \ref{fig:lim} we see that the value is very close to zero for $x = 2$. We thus choose this to be our infinity for the rest of this project.
+
+\begin{figure}[!ht]
+\includegraphics[width = 0.9\textwidth]{fig_lim.eps}
+\caption{The single particle wave function}
+\label{fig:lim}
+\end{figure}
+
+We choose to define the error as
+\begin{gather}
+\text{error} = \text{abs}\left(\frac{\text{exact}-\text{estimated}}{\text{exact}}\right)
+\end{gather}
+
+\section{Gaussian Quadrature}
+The basic thought is that we may utilize polynomials that are orthogonal within a given interval, to reduce the number of integration points we need to find a good enough value for our estimate integral. These methods are an improvement over the standard fixed point methods for many types of integrals. One thing that allows these methods to operate accurately with less integration points is that the integration points are not fixed. Less points will thus be used in regions with small variations. 
+
+The general idea for most integration approximations is that
+\begin{gather}
+\int\limits_a^b f(x) \approx \sum\limits_{i=1}^N\omega_if(x_i)
+\end{gather}
+
+where $\omega_i$ is a parameter which decides how much to weight a sampled $f(x_i)$. We want to approximate our function $f(x)$ to some polynomial, $P_{2N-1}(x)$, of order $2N-1$, which we can do with eg. Taylor expansion. Using different orthogonal polynomials it may be shown that the approximation of the integral reduces to finding an approximation to an integral of a polynomial of order $N-1$. It actually turns out that given N points, we may determine this integral exactly.
+
+\subsection{Gauss-Legendre}
+The most convenient way of using Gaussian Quadrature may be to utilize the Legendre polynomials. These are orthogonal at an interval $[-1,1]$, and the corresponding weight functions is simply equal to one.
+
+We end up with 
+\begin{gather}
+\int\limits_{-\infty}^\infty\int\limits_{-\infty}^\infty\int\limits_{-\infty}^\infty\int\limits_{-\infty}^\infty\int\limits_{-\infty}^\infty\int\limits_{-\infty}^\infty \frac{e^{-2\alpha(r_1+r_2)}}{|\mathbf{r_1}-\mathbf{r_2}|} dx_1dy_1dz_1dx_2dy_2dz_2\\
+\approx \sum\limits_i\sum\limits_j\sum\limits_k\sum\limits_l\sum\limits_m\sum\limits_n \omega_i\omega_j\omega_k\omega_l\omega_m\omega_n \frac{e^{-2\alpha(r_1+r_2)}}{|\mathbf{r_1}-\mathbf{r_2}|}
+\end{gather}
+where the $\omega$ and $x$ are determined from the zeros of a Legendre polynomial of a degree equal to the number of integration points and other properties of the polynomials. 
+Because of the natural symmetry of the problem we only need one value for $\omega$ and one for $x$.
+\subsubsection*{Results}
+The calculations gives the results presented in table \ref{tab:gleg}. We see that the results are rather poor. We need about 45 integration points to achieve a precision of three leading digits. 
+\begin{table}[!ht]
+\centering
+\begin{tabular}{c|c|c}
+N & Gauss-Legendre & error\\
+\hline
+10 & 0.12983 & 0.32647\\
+20 & 0.17707 & 0.08145\\
+30 & 0.18580 & 0.03615\\
+40 & 0.18867 & 0.02125\\
+45 & 0.19013 & 0.01368
+\end{tabular}
+\caption{Results from the Gauss-Legendre integral calculations}
+\label{tab:gleg}
+\end{table}
+\subsection{Gauss-Leguerre}
+For the next calculation we choose to do a transformation to spherical coordinates. This gives us
+\begin{gather}
+\int\limits_{-\infty}^\infty\int\limits_{-\infty}^\infty\int\limits_{-\infty}^\infty\int\limits_{-\infty}^\infty\int\limits_{-\infty}^\infty\int\limits_{-\infty}^\infty \frac{e^{-2\alpha(r_1+r_2)}}{|\mathbf{r_1}-\mathbf{r_2}|} dx_1dy_1dz_1dx_2dy_2dz_2 \\
+= \int\limits_{0}^\pi\int\limits_{0}^\pi\int\limits_{0}^{2\pi}\int\limits_{0}^{2\pi}\int\limits_{-\infty}^\infty\int\limits_{-\infty}^\infty \frac{r_1^2r_2^2e^{-2\alpha(r_1+r_2)}\sin{\theta_1}\sin\theta_2}{\sqrt{r_1^2+r_2^2+2r_1r_2\cos\beta}}dr_1dr_2d\theta_1d\theta_2d\phi_1d\phi_2 
+\end{gather}
+where we have used that $d\mathbf = r^2\sin\theta drd\theta d\phi$ and that
+\begin{gather}
+\cos \beta = \cos\theta_1\cos\theta_2+\sin\theta_1\sin\theta_2\cos(\phi_1-\phi_2)
+\end{gather}
+
+We also choose to make the substitution $\rho = 2\alpha r$, so that we end up with the integral
+\begin{gather}
+\left(\frac{1}{2\alpha}\right)^5\int\limits_{0}^\pi\int\limits_{0}^\pi\int\limits_{0}^{2\pi}\int\limits_{0}^{2\pi}\int\limits_{0}^\infty\int\limits_{0}^\infty \frac{\rho_1^2\rho_2^2e^{-(\rho_1+\rho_2)}\sin{\theta_1}\sin\theta_2}{\sqrt{\rho_1^2+\rho_2^2+2\rho_1\rho_2\cos\beta}}d\rho_1d\rho_2d\theta_1d\theta_2d\phi_1d\phi_2 
+\end{gather}
+
+If we use Laguerre polynomials for the radial part we actually get rid of the squares of the radius and the exponential function. We thus approximate the integral with
+
+\begin{gather}
+\sum\limits_i\sum\limits_j\sum\limits_k\sum\limits_l\sum\limits_m\sum\limits_n \frac{\omega_{\rho,i}\omega_{\rho,j}\omega_{\phi,k}\omega_{\phi,l}\omega_{\theta,m}\omega_{\theta,n}\sin{\theta_m}\sin\theta_n}{\sqrt{\rho_1^2+\rho_2^2+2\rho_1\rho_2\cos\beta}}
+\end{gather}
+where $\cos\beta = \cos\beta(\theta_m,\theta_n,\phi_i,\phi_j)$
+
+\subsubsection*{Results}
+The results given in table \ref{tab:glag} is an huge improvement over the ordinary Legendre approach. As an example 45 integration points gives 5 leading digits accuracy in stead of three. Although each iteration is a bit slower for the Gauss-Laguerre approach, the overall improvements are very good. 
+\begin{table}[!ht]
+\centering
+\begin{tabular}{c|c|c}
+N & Gauss-Laguerre & error\\
+\hline
+10 & 0.186584 & 0.0320678\\
+20 & 0.191255 & 0.0078386\\
+30 & 0.192295 & 0.0024411\\
+40 & 0.192677 & 0.0004577\\
+45 & 0.192781 & 0.0000804
+\end{tabular}
+\caption{Results from the Gauss-Legendre integral calculations}
+\label{tab:glag}
+\end{table}
+\section{Monte Carlo Integration}
+Montecarlo methods are beneficial to use when we are dealing with integrals in several dimensions. The basic idea is that we can calculate the expectation value of a function $f(x)$ as 
+\begin{gather}
+\braket{f} = \int\limits_a^b f(x)p(x)dx 
+\end{gather} 
+where $p(x)$ is the normal distribution defined as
+\begin{gather}
+p(x) = \frac{1}{b-a}\theta(x-a)\theta(b-x)
+\end{gather}
+where 
+\begin{gather}
+\theta(x) =
+\begin{cases}
+ 0 \text{ if } x<0\\
+ 1 \text{ else}
+\end{cases}
+\end{gather}
+An estimator of the expectation value is 
+\begin{gather}
+\braket{f} \approx \frac{1}{N}\sum\limits_{i=1}^Nf(x_i)p(x_i)
+\end{gather}
+where $x_i$ is an random number $x_i \in[a,b]$. 
+
+\subsection{Brute Force Monte Carlo}
+We thus see that we can estimate an integral as
+\begin{gather}
+\int\limits_a^b f(x)dx \approx \frac{b-a}{N}\sum\limits_{i=1}^Nf(x_i)
+\end{gather}
+We see that we can approximate our integral with
+\begin{gather}
+\int\limits_{-\infty}^\infty\int\limits_{-\infty}^\infty\int\limits_{-\infty}^\infty\int\limits_{-\infty}^\infty\int\limits_{-\infty}^\infty\int\limits_{-\infty}^\infty \frac{e^{-2\alpha(r_1+r_2)}}{|\mathbf{r_1}-\mathbf{r_2}|} dx_1dy_1dz_1dx_2dy_2dz_2
+ \approx \frac{(2\rho_\text{max})^6}{N}\sum\limits_{i=1}^N g(\mathbf{x_i})
+\end{gather}
+where we have used the normal distribution, $g(\mathbf{x_i})$ is the integrand as a function of six random numbers and each variable is chosen to lay in the interval $x_i \in[-2,2]$.
+\subsubsection*{Results}
+The results tabulated in table \ref{tab:brute} shows results that are hard to interpret. The error is rather small for the first entry, almost as small as for the second last entry. At least we get accuracy of four leading digits for the last entry, and it is a faster calculation than both of the Gaussian Quadrature methods.
+\begin{table}[!ht]
+\centering
+\begin{tabular}{c|c|c|c}
+N & Brute force & error & Standard deviation\\
+\hline
+1e4 & 0.187513 & 0.0272472 & 0.056879\\
+1e5 & 0.210666 & 0.0928624 & 0.034646\\
+1e6 & 0.197082 & 0.0223908 & 0.007891\\
+1e7 & 0.186887 & 0.0304968 & 0.002615\\
+1e8 & 0.192211 & 0.0028760 & 0.001048
+\end{tabular}
+\caption{Results from the Gauss-Legendre integral calculations}
+\label{tab:brute}
+\end{table}
+\subsection{Importance Sampling Monte Carlo}
+We now want to improve on the brute force method. Our strategy will be to utilize some other probability distribution which follows the function at hand. This allows us to take more samples at the regions which gives contributions to the integral that are not close to zero.
+
+First we move to an spherical point of view once again. As before, the integral then reads
+\begin{gather}
+I = \left(\frac{1}{2\alpha}\right)^5\int\limits_{0}^\pi\int\limits_{0}^\pi\int\limits_{0}^{2\pi}\int\limits_{0}^{2\pi}\int\limits_{0}^\infty\int\limits_{0}^\infty \frac{\rho_1^2\rho_2^2e^{-(\rho_1+\rho_2)}\sin{\theta_1}\sin\theta_2}{\sqrt{\rho_1^2+\rho_2^2+2\rho_1\rho_2\cos\beta}}d\rho_1d\rho_2d\theta_1d\theta_2d\phi_1d\phi_2 
+\end{gather}
+
+We then use the normal distribution for the $\phi$'s and $\theta$'s and an exponential distribution for the $\rho$'s. We then don't have to choose a maximal value for the $\rho$'s as the exponential distribution is defined on the interval $[0,\infty)$. This gives us the following Monte Carlo evaluation of the integral.
+
+\begin{gather}
+I \approx \frac{(2\pi^2)^2}{N}\left(\frac{1}{2\alpha}\right)^5\sum\limits_{i=1}^N \frac{\rho_{1,i}^2\rho_{2,i}^2e^{-(\rho_{1,i}+\rho_{2,i})}\sin{\theta_{1,i}}\sin\theta_{2,i}}{\sqrt{\rho_{1,i}^2+\rho_{2,i}^2+2\rho_{1,i}\rho_{2,i}\cos\beta}}
+\end{gather}
+
+\subsubsection*{Results}
+Performing the calculations we get the results presented in table \ref{tab:importance}. Again we get some weird behavior. The error increases from one million to ten million integration points. 
+
+We get an improvement over the brute force method, especially at a lower number of integration points.
+
+\begin{table}[!ht]
+\centering
+\begin{tabular}{c|c|c|c}
+N & Importance Sampling & error & Standard deviation\\
+\hline
+1e4 & 0.193943 & 0.00611 & 0.008557\\
+1e5 & 0.192067 & 0.00362 & 0.003035\\
+1e6 & 0.192088 & 0.00352 & 0.001077\\
+1e7 & 0.193671 & 0.00470 & 0.000343\\
+1e8 & 0.192588 & 0.00092 & 0.000105
+\end{tabular}
+\caption{Results from the Monte Carlo importance sampling method}
+\label{tab:importance}
+\end{table}
+\clearpage
+\section{Conclusion}
+We can conclude with the fact that it is a good idea to really consider the problem at hand before you choose what method to use. Parameters that come into play when making the decision is mainly how accurate your result will have to be, how much time it will take to set up the method and how much time the simulation will take. If you are only to calculate the integral once, the used cpu-time will not matter as much as if the code are to be reused many times. 
+
+We see that already for six-dimensional integrals there might be a performance boost in choosing a Monte Carlo approach. It should thus be safe to say that integrations with more than six dimensions will mostly be faster when using the Monte Carlo approach as oppose to the Gaussian Quadrature approach. 
+
+Generally we can also conclude that both the improvement to the Legendre approach and the improvement to the brute force Monte Carlo simulation lead to a performance and an accuracy boost. Thus, it should be recommended to use these tweaks if the program will be reused in some way or another.
+
+
+\appendix
+\section{Source Code}
+\lstinputlisting{../Program/Project3/main.cpp}
+
+
+\end{document}
